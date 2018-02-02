@@ -4,11 +4,11 @@ use <roundedCube.scad> // для закругления углов
 
 printerMarginForInnerD = 0.5; // поправка для 3d принтера для внутренних диаметров (увеличение внутреннего диаметра) 
 caseThickness = 2; // толщина корпуса
-cableHoleD = 5; // диаметр отверстия под кабель
+cableHoleD = 6; // диаметр отверстия под кабель
 caseWidth = 75; // ширина корпуса (ось X)
 caseHeight = 25; // высота корпуса (ось Z)
 caseLength = 75; // длина корпуса (ось Y)
-ySupportsOffset = -3; // смещение всех ножек относительно (0,0,0) по оси Y
+ySupportsOffset = -5; // смещение всех ножек относительно (0,0,0) по оси Y
 
 cameraSupportInnerD = 1.5 + printerMarginForInnerD; // внутренний диаметр стоек под камеру
 cameraSupportOuterD = 4.5; // внешний диаметр стоек под камеру
@@ -20,6 +20,8 @@ LEDSupportH = 12.0; // высота стоек под LED
 
 $fa=0.5;  // default minimum facet angle
 $fs=0.5; // default minimum facet size
+
+
 
 
 module supportTriangle(width,height,depth) {
@@ -71,14 +73,31 @@ module cameraSupports(h) {
         support(innerD = cameraSupportInnerD, outerD = cameraSupportOuterD, h = cameraSupportH);    
 }
 
-module LEDSupports(h) {
-    translate([-20,ySupportsOffset,caseThickness]) 
-        support(innerD = LEDSupportInnerD, outerD = LEDSupportOuterD, h = LEDSupportH);
-    translate([20,ySupportsOffset,caseThickness]) 
-        support(innerD = LEDSupportInnerD, outerD = LEDSupportOuterD, h = LEDSupportH);
-    translate([0,ySupportsOffset-20,caseThickness]) 
-        support(innerD = LEDSupportInnerD, outerD = LEDSupportOuterD, h = LEDSupportH); 
+module LEDSupport(h,innerD,outerD, tX, tY) {
 
+    translate([tX,tY,caseThickness]) 
+        support(innerD = innerD, outerD = outerD, h = h);
+    
+    
+    for(r=[0:90:359]) {
+        
+        translate([tX,tY,caseThickness])
+            rotate([0,0,r])
+            translate([outerD/2-1,0,0])
+            supportTriangle(5,3,2);
+    }
+
+}
+
+module LEDSupports(h) {
+    
+    LEDSupport(h = LEDSupportH, innerD = LEDSupportInnerD, outerD = LEDSupportOuterD, tX = -20, tY = ySupportsOffset);
+
+    LEDSupport(h = LEDSupportH, innerD = LEDSupportInnerD, outerD = LEDSupportOuterD, tX = 20, tY = ySupportsOffset);
+    
+    LEDSupport(h = LEDSupportH, innerD = LEDSupportInnerD, outerD = LEDSupportOuterD, tX = 0, tY = ySupportsOffset-20);
+
+    
 }
 
 
@@ -92,17 +111,27 @@ module support(innerD, outerD, h){
 module cameraCase() {
     difference() {
         case(boxWidth = caseWidth, boxLength = caseLength, boxHeight = caseHeight, thickness = caseThickness);
-        translate([caseWidth/2-caseThickness,10,5+caseThickness]) cableHole(d=cableHoleD, h=25, thickness = caseThickness);
+        //translate([caseWidth/2-caseThickness,10,5+caseThickness]) cableHole(d=cableHoleD, h=25, thickness = caseThickness);
+        translate([-20,-25,0]) cylinder(h=caseThickness,d=cableHoleD);
+        
     }
-    #translate([0,-caseWidth/2+8/2,10+caseThickness]) rotate([90,0,0]) mountThread(h=8);
+    
+    //translate([-caseWidth/2+7/2,0,0]) 
+       //cylinder(d=5,h=caseHeight-2);    
+    
+    
+    //translate([-caseWidth/2,-caseLength/2,caseHeight-7]) 
+       // cube([7,7,5]);
+    
+    translate([0,-caseWidth/2+8/2,10+caseThickness]) rotate([90,0,0]) mountThread(h=8);
 }
 
 module case(boxWidth, boxLength, boxHeight, thickness)
 {
-    difference() 
+    #difference() 
     {
-        translate([-boxWidth/2,-boxLength/2,0]) roundedCube(dim=[boxWidth, boxLength, boxHeight],r=5,x=false,y=false,z=true);
-        translate([-boxWidth/2+thickness,-boxLength/2+thickness,thickness]) roundedCube(dim=[boxWidth - thickness*2, boxLength - thickness*2, boxHeight-thickness],r=5,x=false,y=false,z=true);
+        translate([-boxWidth/2,-boxLength/2,0]) cube([boxWidth, boxLength, boxHeight]);//roundedCube(dim=[boxWidth, boxLength, boxHeight],r=5,x=false,y=false,z=true);
+        translate([-boxWidth/2+thickness,-boxLength/2+thickness,thickness]) cube([boxWidth - thickness*2, boxLength - thickness*2, boxHeight-thickness]);//roundedCube(dim=[boxWidth - thickness*2, boxLength - thickness*2, boxHeight-thickness],r=5,x=false,y=false,z=true);
     }
     
 }
@@ -111,9 +140,8 @@ difference() {
     cameraCase();
     // thread 1/4', pitch = 20 TPI
     translate([0,-caseWidth/2+10,10+caseThickness]) rotate([90,0,0]) isoThread(d=1/4*25.4 + printerMarginForInnerD, h=15, pitch=25.4/20, internal=true, $fn=10); 
-    translate([0,0,0]) scale([0.5,0.5,1]) mirror([1,0,0]) linear_extrude(0.5) text("MADE IN CHINA", halign="center");
+    //translate([0,0,0]) scale([0.5,0.5,1]) mirror([1,0,0]) linear_extrude(0.5) text("MADE IN CHINA", halign="center");
 }
 cameraSupports(h=5);
 LEDSupports(h=12);
 
-supportTriangle(10,10,5);
